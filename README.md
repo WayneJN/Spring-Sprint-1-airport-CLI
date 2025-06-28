@@ -26,6 +26,7 @@ Optional admin mode allows creation of new cities, airports, and passengers.
 - The backend API running at `http://localhost:8080`
   - See: [airportAPI GitHub Repository](https://github.com/WayneJN/Spring-Sprint-1-airport-API)
 
+
 ### Run the CLI
 
 - bash
@@ -51,7 +52,7 @@ GitHub Actions are configured to automatically run these tests on all PRs and co
 - Java HttpClient
 
 ## 🔗 Related Projects
-🧠 Backend API: airportAPI GitHub Repository
+[🧠 Backend API: airportAPI GitHub Repository](https://github.com/WayneJN/Spring-Sprint-1-airport-API)
 
 ## 👥 Team
 Wayne N.
