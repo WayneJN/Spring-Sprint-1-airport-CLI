@@ -1,76 +1,57 @@
 package com.wayne.airportCLI.service;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.util.Scanner;
-import java.io.IOException;
-
 
 public class ApiService {
 
     private static final String BASE_URL = "http://localhost:8080";
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
+    // ---------------- GET REQUESTS ---------------- //
+
     public void getAirportsByCity(Scanner scanner) {
         System.out.print("Enter city ID: ");
         String cityId = scanner.nextLine();
-
         String url = BASE_URL + "/cities/" + cityId + "/airports";
-        System.out.println("→ Fetching airports for city ID " + cityId);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
                 .build();
 
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            System.out.println("\n🛬 Airports:\n" + response.body());
-        } catch (IOException | InterruptedException e) {
-            System.err.println("❌ Failed to fetch airports: " + e.getMessage());
-        }
+        sendRequest(request, "\n🛬 Airports:");
     }
-
 
     public void getAircraftByPassenger(Scanner scanner) {
         System.out.print("Enter passenger ID: ");
         String id = scanner.nextLine();
-
         String url = BASE_URL + "/passengers/" + id + "/aircraft";
-        System.out.println("→ Fetching aircraft for passenger ID " + id);
 
-        try {
-            String response = Request.get(url)
-                    .execute()
-                    .returnContent()
-                    .asString();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
 
-            System.out.println("\n✈️ Aircraft:\n" + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to fetch aircraft: " + e.getMessage());
-        }
+        sendRequest(request, "\n✈️ Aircraft:");
     }
 
     public void getPassengersByAirport(Scanner scanner) {
         System.out.print("Enter airport ID: ");
         String airportId = scanner.nextLine();
-
         String url = BASE_URL + "/airports/" + airportId + "/passengers";
-        System.out.println("→ Fetching passengers for airport ID " + airportId);
 
-        try {
-            String response = Request.get(url)
-                    .execute()
-                    .returnContent()
-                    .asString();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
 
-            System.out.println("\n👥 Passengers:\n" + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to fetch passengers: " + e.getMessage());
-        }
+        sendRequest(request, "\n👥 Passengers:");
     }
 
     public void getFlightsBetweenAirports(Scanner scanner) {
@@ -78,32 +59,28 @@ public class ApiService {
         String origin = scanner.nextLine();
         System.out.print("Enter destination airport ID: ");
         String destination = scanner.nextLine();
-
         String url = BASE_URL + "/flights?origin=" + origin + "&destination=" + destination;
-        System.out.println("→ Fetching flights from " + origin + " to " + destination);
 
-        try {
-            String response = Request.get(url)
-                    .execute()
-                    .returnContent()
-                    .asString();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
 
-            System.out.println("\n🛫 Flights:\n" + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to fetch flights: " + e.getMessage());
-        }
+        sendRequest(request, "\n🛫 Flights:");
     }
+
+    // ---------------- POST REQUESTS ---------------- //
 
     public void showAdminMenu(Scanner scanner) {
         boolean editing = true;
         while (editing) {
             System.out.println("""
-        ✏️ Admin Menu:
-        1. Add new city
-        2. Add new airport
-        3. Add new passenger
-        4. Return to main menu
-        """);
+            ✏️ Admin Menu:
+            1. Add new city
+            2. Add new airport
+            3. Add new passenger
+            4. Return to main menu
+            """);
 
             System.out.print("Your choice: ");
             String choice = scanner.nextLine();
@@ -134,17 +111,7 @@ public class ApiService {
         }
         """, name, state, pop);
 
-        try {
-            String response = Request.post(BASE_URL + "/cities")
-                    .bodyString(json, ContentType.APPLICATION_JSON)
-                    .execute()
-                    .returnContent()
-                    .asString();
-
-            System.out.println("✅ City created: " + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to create city: " + e.getMessage());
-        }
+        sendPost("/cities", json, "✅ City created:");
     }
 
     public void createAirport(Scanner scanner) {
@@ -152,8 +119,7 @@ public class ApiService {
         String name = scanner.nextLine();
         System.out.print("Airport code (e.g. YYT): ");
         String code = scanner.nextLine().toUpperCase();
-
-        System.out.print("Enter city ID to link this airport to: ");
+        System.out.print("City ID: ");
         String cityId = scanner.nextLine();
 
         String json = String.format("""
@@ -164,17 +130,7 @@ public class ApiService {
         }
         """, name, code, cityId);
 
-        try {
-            String response = Request.post(BASE_URL + "/airports")
-                    .bodyString(json, ContentType.APPLICATION_JSON)
-                    .execute()
-                    .returnContent()
-                    .asString();
-
-            System.out.println("✅ Airport created:\n" + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to create airport: " + e.getMessage());
-        }
+        sendPost("/airports", json, "✅ Airport created:");
     }
 
     public void createPassenger(Scanner scanner) {
@@ -184,8 +140,7 @@ public class ApiService {
         String lastName = scanner.nextLine();
         System.out.print("Phone number: ");
         String phone = scanner.nextLine();
-
-        System.out.print("City ID (home city): ");
+        System.out.print("City ID: ");
         String cityId = scanner.nextLine();
 
         String json = String.format("""
@@ -197,20 +152,27 @@ public class ApiService {
         }
         """, firstName, lastName, phone, cityId);
 
-        try {
-            String response = Request.post(BASE_URL + "/passengers")
-                    .bodyString(json, ContentType.APPLICATION_JSON)
-                    .execute()
-                    .returnContent()
-                    .asString();
+        sendPost("/passengers", json, "✅ Passenger created:");
+    }
 
-            System.out.println("✅ Passenger created:\n" + response);
-        } catch (IOException e) {
-            System.err.println("❌ Failed to create passenger: " + e.getMessage());
+    // ---------------- SHARED METHODS ---------------- //
+
+    private void sendRequest(HttpRequest request, String successHeader) {
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println(successHeader + "\n" + response.body());
+        } catch (IOException | InterruptedException e) {
+            System.err.println("❌ Request failed: " + e.getMessage());
         }
     }
 
+    private void sendPost(String endpoint, String json, String successHeader) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + endpoint))
+                .header("Content-Type", "application/json")
+                .POST(BodyPublishers.ofString(json))
+                .build();
 
-
-
+        sendRequest(request, successHeader);
+    }
 }

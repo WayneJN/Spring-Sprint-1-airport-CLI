@@ -1,85 +1,57 @@
 package com.wayne.airportCLI.service;
 
-import org.apache.hc.client5.http.fluent.Request;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Scanner;
 
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApiServiceTest {
 
     private ApiService apiService;
-    private Scanner mockScanner;
+    private ByteArrayOutputStream outContent;
 
     @BeforeEach
-    void setup() {
+    void setUp() {
         apiService = new ApiService();
-        mockScanner = mock(Scanner.class);
+
+        // Redirect console output for testing
+        outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
     }
 
     @Test
-    void testGetAirportsByCity() throws Exception {
-        when(mockScanner.nextLine()).thenReturn("1");
-
-        try (MockedStatic<Request> mockedRequest = mockStatic(Request.class)) {
-            var mockRequest = mock(Request.class);
-            var mockExecutor = mock(Request.class);
-            when(Request.get("http://localhost:8080/cities/1/airports")).thenReturn(mockRequest);
-            when(mockRequest.execute()).thenReturn(mockExecutor);
-            when(mockExecutor.returnContent()).thenReturn(() -> "[{\"name\":\"YYT\"}]");
-
-            apiService.getAirportsByCity(mockScanner);
-        }
+    void testGetAirportsByCity_withMockInput() {
+        Scanner scanner = new Scanner("1\n");
+        apiService.getAirportsByCity(scanner);
+        String output = outContent.toString();
+        assertTrue(output.contains("→ Fetching airports for city ID 1"));
     }
 
     @Test
-    void testGetAircraftByPassenger() throws Exception {
-        when(mockScanner.nextLine()).thenReturn("1");
-
-        try (MockedStatic<Request> mockedRequest = mockStatic(Request.class)) {
-            var mockRequest = mock(Request.class);
-            var mockExecutor = mock(Request.class);
-            when(Request.get("http://localhost:8080/passengers/1/aircraft")).thenReturn(mockRequest);
-            when(mockRequest.execute()).thenReturn(mockExecutor);
-            when(mockExecutor.returnContent()).thenReturn(() -> "[{\"type\":\"Boeing 737\"}]");
-
-            apiService.getAircraftByPassenger(mockScanner);
-        }
+    void testGetAircraftByPassenger_withMockInput() {
+        Scanner scanner = new Scanner("1\n");
+        apiService.getAircraftByPassenger(scanner);
+        String output = outContent.toString();
+        assertTrue(output.contains("→ Fetching aircraft for passenger ID 1"));
     }
 
     @Test
-    void testGetPassengersByAirport() throws Exception {
-        when(mockScanner.nextLine()).thenReturn("1");
-
-        try (MockedStatic<Request> mockedRequest = mockStatic(Request.class)) {
-            var mockRequest = mock(Request.class);
-            var mockExecutor = mock(Request.class);
-            when(Request.get("http://localhost:8080/airports/1/passengers")).thenReturn(mockRequest);
-            when(mockRequest.execute()).thenReturn(mockExecutor);
-            when(mockExecutor.returnContent()).thenReturn(() -> "[{\"firstName\":\"Wayne\"}]");
-
-            apiService.getPassengersByAirport(mockScanner);
-        }
+    void testGetPassengersByAirport_withMockInput() {
+        Scanner scanner = new Scanner("1\n");
+        apiService.getPassengersByAirport(scanner);
+        String output = outContent.toString();
+        assertTrue(output.contains("→ Fetching passengers for airport ID 1"));
     }
 
     @Test
-    void testGetFlightsBetweenAirports() throws Exception {
-        when(mockScanner.nextLine()).thenReturn("1", "2");
-
-        try (MockedStatic<Request> mockedRequest = mockStatic(Request.class)) {
-            var mockRequest = mock(Request.class);
-            var mockExecutor = mock(Request.class);
-            String expectedUrl = "http://localhost:8080/flights?origin=1&destination=2";
-            when(Request.get(expectedUrl)).thenReturn(mockRequest);
-            when(mockRequest.execute()).thenReturn(mockExecutor);
-            when(mockExecutor.returnContent()).thenReturn(() -> "[{\"flightNumber\":\"AC123\"}]");
-
-            apiService.getFlightsBetweenAirports(mockScanner);
-        }
+    void testGetFlightsBetweenAirports_withMockInput() {
+        Scanner scanner = new Scanner("1\n2\n");
+        apiService.getFlightsBetweenAirports(scanner);
+        String output = outContent.toString();
+        assertTrue(output.contains("→ Fetching flights from 1 to 2"));
     }
 }
