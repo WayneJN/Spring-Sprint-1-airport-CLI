@@ -1,11 +1,13 @@
 package com.wayne.airportCLI.service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.http.HttpRequest.BodyPublishers;
 import java.util.Scanner;
 
 public class ApiService {
@@ -19,39 +21,21 @@ public class ApiService {
         System.out.print("Enter city ID: ");
         String cityId = scanner.nextLine();
         String url = BASE_URL + "/cities/" + cityId + "/airports";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
-
-        sendRequest(request, "\n🛬 Airports:");
+        sendGet(url, "\n✈ Airports:");
     }
 
     public void getAircraftByPassenger(Scanner scanner) {
         System.out.print("Enter passenger ID: ");
         String id = scanner.nextLine();
         String url = BASE_URL + "/passengers/" + id + "/aircraft";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
-
-        sendRequest(request, "\n✈️ Aircraft:");
+        sendGet(url, "\n🛩 Aircraft:");
     }
 
     public void getPassengersByAirport(Scanner scanner) {
         System.out.print("Enter airport ID: ");
         String airportId = scanner.nextLine();
         String url = BASE_URL + "/airports/" + airportId + "/passengers";
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
-
-        sendRequest(request, "\n👥 Passengers:");
+        sendGet(url, "\n👥 Passengers:");
     }
 
     public void getFlightsBetweenAirports(Scanner scanner) {
@@ -60,13 +44,7 @@ public class ApiService {
         System.out.print("Enter destination airport ID: ");
         String destination = scanner.nextLine();
         String url = BASE_URL + "/flights?origin=" + origin + "&destination=" + destination;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
-
-        sendRequest(request, "\n🛫 Flights:");
+        sendGet(url, "\n🛫 Flights:");
     }
 
     // ---------------- POST REQUESTS ---------------- //
@@ -157,22 +135,54 @@ public class ApiService {
 
     // ---------------- SHARED METHODS ---------------- //
 
-    private void sendRequest(HttpRequest request, String successHeader) {
+    private void sendGet(String url, String successHeader) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+        sendRequest(request, successHeader);
+    }
+
+    private void sendPost(String endpoint, String json, String successHeader) {
         try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println(successHeader + "\n" + response.body());
-        } catch (IOException | InterruptedException e) {
+            URI uri = URI.create(BASE_URL + endpoint);
+            HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+
+            try (var os = conn.getOutputStream()) {
+                byte[] input = json.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            int status = conn.getResponseCode();
+            System.out.println("Status: " + status);
+
+            try (var is = (status >= 200 && status < 300) ? conn.getInputStream() : conn.getErrorStream();
+                 var reader = new BufferedReader(new InputStreamReader(is))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line.trim());
+                }
+                System.out.println(successHeader + "\n" + response);
+            }
+
+            conn.disconnect();
+        } catch (IOException e) {
             System.err.println("❌ Request failed: " + e.getMessage());
         }
     }
 
-    private void sendPost(String endpoint, String json, String successHeader) {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + endpoint))
-                .header("Content-Type", "application/json")
-                .POST(BodyPublishers.ofString(json))
-                .build();
-
-        sendRequest(request, successHeader);
+    private void sendRequest(HttpRequest request, String successHeader) {
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Status: " + response.statusCode());
+            System.out.println(successHeader + "\n" + response.body());
+        } catch (IOException | InterruptedException e) {
+            System.err.println("❌ Request failed: " + e.getMessage());
+        }
     }
 }
